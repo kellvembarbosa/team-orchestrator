@@ -64,6 +64,40 @@ codex_has() {
   [ -f "$(codex_agents_dir)/$name.toml" ]
 }
 
+codex_list_all_names() {
+  local d f n
+  d="$(codex_agents_dir)"
+  [ -d "$d" ] || return 0
+  shopt -s nullglob
+  for f in "$d"/*.toml; do
+    n="$(basename "$f" .toml)"
+    echo "$n"
+  done
+}
+
+codex_remove_all() {
+  local n
+  for n in $(codex_list_all_names); do
+    codex_remove "$n"
+  done
+  rmdir "$(codex_agents_dir)" 2>/dev/null || true
+}
+
+codex_unsetup() {
+  local cfg
+  cfg="$(codex_config)"
+  [ -f "$cfg" ] || return 0
+  local tmp
+  tmp="$(mktemp)"
+  awk '
+    BEGIN { skip = 0 }
+    /^\[agents\][[:space:]]*$/ { skip = 1; next }
+    /^\[/ { skip = 0 }
+    { if (!skip) print }
+  ' "$cfg" > "$tmp"
+  mv "$tmp" "$cfg"
+}
+
 codex_list_orphans() {
   local d f n
   d="$(codex_agents_dir)"

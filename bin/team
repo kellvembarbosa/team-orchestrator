@@ -12,7 +12,7 @@ LIB="$ROOT/lib"
 . "$LIB/emit_claude.sh"
 . "$LIB/emit_codex.sh"
 
-RESERVED_RE='^(new|delete|list|setup-claude|setup-codex)$'
+RESERVED_RE='^(new|delete|list|setup-claude|setup-codex|uninstall)$'
 SLUG_RE='^[a-z]([a-z0-9-]{0,38}[a-z0-9])?$'
 
 die() { echo "team: $*" >&2; exit 1; }
@@ -102,6 +102,76 @@ cmd_setup_claude() {
   echo "Restart Claude Code for the env change to take effect."
 }
 
+cmd_uninstall() {
+  local yes=0 dry=0 purge_codex=0 purge_env=0 keep=0
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      -y|--yes)              yes=1; shift ;;
+      --dry-run)             dry=1; shift ;;
+      --purge-codex-config)  purge_codex=1; shift ;;
+      --purge-claude-env)    purge_env=1; shift ;;
+      --keep-teams)          keep=1; shift ;;
+      *) die "unknown flag: $1" ;;
+    esac
+  done
+
+  local claude_names codex_names
+  claude_names="$(claude_list_names | tr '\n' ' ')"
+  codex_names="$(codex_list_all_names | tr '\n' ' ')"
+  local has_targets=0
+  [ -f "$TARGETS_FILE" ] && has_targets=1
+
+  echo "team-orchestrator uninstall plan:"
+  if [ $keep -eq 1 ]; then
+    echo "  teams (claude): keep"
+    echo "  teams (codex):  keep"
+  else
+    echo "  teams (claude): ${claude_names:-<none>}"
+    echo "  teams (codex):  ${codex_names:-<none>}"
+  fi
+  echo "  .targets.json:  $([ $has_targets -eq 1 ] && echo remove || echo absent)"
+  [ $purge_codex -eq 1 ] && echo "  codex config:   purge [agents] block"
+  [ $purge_env   -eq 1 ] && echo "  claude env:     remove CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS"
+
+  if [ $dry -eq 1 ]; then
+    echo "(dry-run) no changes made."
+    return 0
+  fi
+
+  if [ $yes -ne 1 ]; then
+    if [ ! -t 0 ]; then
+      die "non-interactive: pass --yes to confirm"
+    fi
+    printf 'Proceed? [y/N] '
+    local ans; read -r ans
+    case "$ans" in
+      y|Y|yes|YES) ;;
+      *) echo "aborted."; return 1 ;;
+    esac
+  fi
+
+  if [ $keep -ne 1 ]; then
+    claude_remove_all
+    codex_remove_all
+  fi
+  targets_clear
+
+  if [ $purge_codex -eq 1 ]; then
+    codex_unsetup
+  fi
+
+  if [ $purge_env -eq 1 ]; then
+    local settings="${HOME}/.claude/settings.json"
+    if [ -f "$settings" ]; then
+      local tmp; tmp="$(mktemp)"
+      jq 'if .env then .env |= del(.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS) else . end' "$settings" > "$tmp"
+      mv "$tmp" "$settings"
+    fi
+  fi
+
+  echo "Uninstall complete. To remove the plugin binary itself, run: /plugin uninstall team"
+}
+
 cmd_setup_codex() {
   codex_setup
   targets_persist_codex
@@ -116,6 +186,7 @@ case "$sub" in
   list)         cmd_list "$@" ;;
   setup-claude) cmd_setup_claude "$@" ;;
   setup-codex)  cmd_setup_codex  "$@" ;;
+  uninstall)    cmd_uninstall    "$@" ;;
   ""|-h|--help|help)
     cat <<EOF
 team — manage agent teams across Claude Code and Codex
@@ -126,6 +197,7 @@ Usage:
   team list
   team setup-claude
   team setup-codex
+  team uninstall [--yes] [--dry-run] [--keep-teams] [--purge-codex-config] [--purge-claude-env]
 EOF
     ;;
   *) die "unknown subcommand: $sub" ;;

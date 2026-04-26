@@ -40,3 +40,22 @@ claude_has() {
   local name="$1"
   [ -f "$CLAUDE_PLUGIN_ROOT/teams/$name.md" ]
 }
+
+claude_list_names() {
+  local d="$CLAUDE_PLUGIN_ROOT/teams"
+  [ -d "$d" ] || return 0
+  shopt -s nullglob
+  local f n
+  for f in "$d"/*.md; do
+    n="$(basename "$f" .md)"
+    echo "$n"
+  done
+}
+
+claude_remove_all() {
+  local n
+  for n in $(claude_list_names); do
+    claude_remove "$n"
+  done
+  rmdir "$CLAUDE_PLUGIN_ROOT/teams" 2>/dev/null || true
+}

@@ -31,6 +31,10 @@ targets_resolve() {
   echo "$out"
 }
 
+targets_clear() {
+  rm -f "$TARGETS_FILE"
+}
+
 targets_persist_codex() {
   mkdir -p "$(dirname "$TARGETS_FILE")"
   local current='{}'
