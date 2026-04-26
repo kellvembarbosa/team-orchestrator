@@ -26,6 +26,15 @@ cmd_new() {
       -m|--model)        model="${2:-}";  shift 2 ;;
       -s|--size)         size="${2:-}";   shift 2 ;;
       -t|--target)       target="${2:-}"; shift 2 ;;
+      -h|--help)
+        cat <<EOF
+team new — create a new agent team
+
+Usage:
+  team new (-n|--name) <slug> (-i|--instructions) "<text>" \\
+           [(-m|--model) <m>] [(-s|--size) <n>] [(-t|--target) claude,codex]
+EOF
+        return 0 ;;
       *) die "unknown flag: $1" ;;
     esac
   done
@@ -58,6 +67,16 @@ cmd_new() {
 
 cmd_delete() {
   local name="${1:-}"
+  case "$name" in
+    -h|--help)
+      cat <<EOF
+team delete — delete an agent team across all targets where it exists
+
+Usage:
+  team delete <name>
+EOF
+      return 0 ;;
+  esac
   [ -n "$name" ] || die "missing team name"
   [[ "$name" =~ $RESERVED_RE ]] && die "'$name' is reserved"
   local found=0
@@ -74,6 +93,14 @@ cmd_delete_all() {
       -y|--yes)    yes=1; shift ;;
       --dry-run)   dry=1; shift ;;
       -t|--target) target="${2:-}"; shift 2 ;;
+      -h|--help)
+        cat <<EOF
+team delete-all — delete ALL teams (destructive)
+
+Usage:
+  team delete-all [--yes] [--dry-run] [(-t|--target) claude,codex]
+EOF
+        return 0 ;;
       *) die "unknown flag: $1" ;;
     esac
   done
@@ -131,6 +158,13 @@ cmd_delete_all() {
 }
 
 cmd_list() {
+  case "${1:-}" in
+    -h|--help)
+      cat <<EOF
+team list — list all defined teams across claude and codex
+EOF
+      return 0 ;;
+  esac
   shopt -s nullglob
   local orphans has_claude=0
   orphans="$(codex_list_orphans)"
@@ -163,12 +197,26 @@ cmd_seed() {
   while [ $# -gt 0 ]; do
     case "$1" in
       -t|--target) target="${2:-}"; shift 2 ;;
+      -h|--help)
+        cat <<EOF
+team seed — seed the default starter teams (idempotent)
+
+Usage:
+  team seed [(-t|--target) claude,codex]
+
+Defaults to both 'claude codex'. Prints all registered teams when done.
+EOF
+        return 0 ;;
       *) die "unknown flag: $1" ;;
     esac
   done
 
   local resolved
-  resolved="$(targets_resolve "$target")" || exit 1
+  if [ -n "$target" ]; then
+    resolved="$(targets_resolve "$target")" || exit 1
+  else
+    resolved="claude codex"
+  fi
 
   . "$LIB/seed_data.sh"
 
@@ -205,11 +253,21 @@ cmd_seed() {
   done
 
   echo "Seed done. created=$created skipped=$skipped target=$resolved"
+  echo
+  echo "Registered teams:"
+  cmd_list
   [ $created -gt 0 ] && echo "Run /reload-plugins (claude) and re-scan agents (codex) as needed."
   return 0
 }
 
 cmd_setup_claude() {
+  case "${1:-}" in
+    -h|--help)
+      cat <<EOF
+team setup-claude — enable CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1 in ~/.claude/settings.json
+EOF
+      return 0 ;;
+  esac
   local settings="${HOME}/.claude/settings.json"
   mkdir -p "$(dirname "$settings")"
   [ -f "$settings" ] || echo '{}' > "$settings"
@@ -229,6 +287,15 @@ cmd_uninstall() {
       --purge-codex-config)  purge_codex=1; shift ;;
       --purge-claude-env)    purge_env=1; shift ;;
       --keep-teams)          keep=1; shift ;;
+      -h|--help)
+        cat <<EOF
+team uninstall — remove team-orchestrator artifacts
+
+Usage:
+  team uninstall [--yes] [--dry-run] [--keep-teams] \\
+                 [--purge-codex-config] [--purge-claude-env]
+EOF
+        return 0 ;;
       *) die "unknown flag: $1" ;;
     esac
   done
@@ -291,6 +358,13 @@ cmd_uninstall() {
 }
 
 cmd_setup_codex() {
+  case "${1:-}" in
+    -h|--help)
+      cat <<EOF
+team setup-codex — register ~/.codex/agents/ as an additional team target
+EOF
+      return 0 ;;
+  esac
   codex_setup
   targets_persist_codex
   echo "Codex target enabled. Subsequent /team:new will mirror to ~/.codex/agents/."

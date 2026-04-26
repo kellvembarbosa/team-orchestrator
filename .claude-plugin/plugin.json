@@ -1,6 +1,6 @@
 {
   "name": "team",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Orchestrate agent teams across multiple AI coding CLIs. Define once, run on Claude Code (slash commands) and Codex (subagents). PRs welcome to add Gemini CLI, Qwen Code, opencode, and more.",
   "author": {
     "name": "Kellvem Barbosa"
