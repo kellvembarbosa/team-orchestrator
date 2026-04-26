@@ -101,8 +101,10 @@ agents。名称应与 `~/.codex/config.toml` 中的 `[agents.<name>]` 一致。
 | `/team:setup-claude` | 启用 `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` |
 | `/team:setup-codex` | 启用 Codex 镜像 |
 | `/team:new` | 创建团队 |
+| `/team:seed` | 一键创建 24 个默认团队（UX、产品、工程、增长、商业、风险、安全）。幂等 — 已存在则跳过。 |
 | `/team:delete <name>` | 从所有运行时中删除 |
 | `/team:list` | 列出团队 |
+| `/team:uninstall [--yes] [--dry-run] [--keep-teams] [--purge-codex-config] [--purge-claude-env]` | 移除生成的团队和插件状态。`--dry-run` 仅预览；`--keep-teams` 保留团队文件；`--purge-codex-config` 清理 `~/.codex/config.toml` 的 `[agents]` 段；`--purge-claude-env` 移除 `~/.claude/settings.json` 中的实验性环境变量。 |
 | `/team:<name>` | 在 Claude Code 中生成团队 |
 
 完整文档：[README.md](../README.md)。

@@ -12,7 +12,7 @@ LIB="$ROOT/lib"
 . "$LIB/emit_claude.sh"
 . "$LIB/emit_codex.sh"
 
-RESERVED_RE='^(new|delete|list|setup-claude|setup-codex|uninstall)$'
+RESERVED_RE='^(new|delete|delete-all|list|seed|setup-claude|setup-codex|uninstall)$'
 SLUG_RE='^[a-z]([a-z0-9-]{0,38}[a-z0-9])?$'
 
 die() { echo "team: $*" >&2; exit 1; }
@@ -67,6 +67,69 @@ cmd_delete() {
   echo "Deleted team '$name'."
 }
 
+cmd_delete_all() {
+  local yes=0 dry=0 target=""
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      -y|--yes)    yes=1; shift ;;
+      --dry-run)   dry=1; shift ;;
+      -t|--target) target="${2:-}"; shift 2 ;;
+      *) die "unknown flag: $1" ;;
+    esac
+  done
+
+  local resolved
+  resolved="$(targets_resolve "$target")" || exit 1
+
+  local claude_names="" codex_names=""
+  for t in $resolved; do
+    case "$t" in
+      claude) claude_names="$(claude_list_names | tr '\n' ' ')" ;;
+      codex)  codex_names="$(codex_list_all_names | tr '\n' ' ')" ;;
+    esac
+  done
+
+  echo "team delete-all plan (target:$resolved):"
+  echo "  claude: ${claude_names:-<none>}"
+  echo "  codex:  ${codex_names:-<none>}"
+
+  if [ -z "${claude_names// }" ] && [ -z "${codex_names// }" ]; then
+    echo "Nothing to delete."
+    return 0
+  fi
+
+  if [ $dry -eq 1 ]; then
+    echo "(dry-run) no changes made."
+    return 0
+  fi
+
+  if [ $yes -ne 1 ]; then
+    if [ ! -t 0 ]; then
+      die "non-interactive: pass --yes to confirm"
+    fi
+    printf 'Delete ALL teams? [y/N] '
+    local ans; read -r ans
+    case "$ans" in
+      y|Y|yes|YES) ;;
+      *) echo "aborted."; return 1 ;;
+    esac
+  fi
+
+  local n
+  for t in $resolved; do
+    case "$t" in
+      claude)
+        for n in $claude_names; do claude_remove "$n" || true; done
+        ;;
+      codex)
+        for n in $codex_names; do codex_remove "$n" || true; done
+        ;;
+    esac
+  done
+
+  echo "Deleted all teams on:$resolved. Run /reload-plugins (claude) and re-scan agents (codex) as needed."
+}
+
 cmd_list() {
   shopt -s nullglob
   local orphans has_claude=0
@@ -93,6 +156,57 @@ cmd_list() {
   for n in $orphans; do
     printf '%-20s %-10s %-6s %-7s %-6s\n' "$n" "-" "-" "-" "yes"
   done
+}
+
+cmd_seed() {
+  local target=""
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      -t|--target) target="${2:-}"; shift 2 ;;
+      *) die "unknown flag: $1" ;;
+    esac
+  done
+
+  local resolved
+  resolved="$(targets_resolve "$target")" || exit 1
+
+  . "$LIB/seed_data.sh"
+
+  local created=0 skipped=0
+  local entry name instr t any_missing
+  for entry in "${INITIAL_TEAMS[@]}"; do
+    name="${entry%%|*}"
+    instr="${entry#*|}"
+    [[ "$name" =~ $SLUG_RE ]] || die "seed has invalid slug: $name"
+    [[ "$name" =~ $RESERVED_RE ]] && die "seed has reserved name: $name"
+
+    any_missing=0
+    for t in $resolved; do
+      case "$t" in
+        claude) claude_has "$name" || any_missing=1 ;;
+        codex)  codex_has  "$name" || any_missing=1 ;;
+      esac
+    done
+
+    if [ $any_missing -eq 0 ]; then
+      echo "skip:    $name"
+      skipped=$((skipped+1))
+      continue
+    fi
+
+    for t in $resolved; do
+      case "$t" in
+        claude) claude_has "$name" || claude_emit "$name" "$instr" "" "" ;;
+        codex)  codex_has  "$name" || codex_emit  "$name" "$instr" "" "" ;;
+      esac
+    done
+    echo "created: $name"
+    created=$((created+1))
+  done
+
+  echo "Seed done. created=$created skipped=$skipped target=$resolved"
+  [ $created -gt 0 ] && echo "Run /reload-plugins (claude) and re-scan agents (codex) as needed."
+  return 0
 }
 
 cmd_setup_claude() {
@@ -187,7 +301,9 @@ shift || true
 case "$sub" in
   new)          cmd_new "$@" ;;
   delete)       cmd_delete "$@" ;;
+  delete-all)   cmd_delete_all "$@" ;;
   list)         cmd_list "$@" ;;
+  seed)         cmd_seed "$@" ;;
   setup-claude) cmd_setup_claude "$@" ;;
   setup-codex)  cmd_setup_codex  "$@" ;;
   uninstall)    cmd_uninstall    "$@" ;;
@@ -198,7 +314,9 @@ team — manage agent teams across Claude Code and Codex
 Usage:
   team new (-n|--name) <slug> (-i|--instructions) "<text>" [(-m|--model) <m>] [(-s|--size) <n>] [(-t|--target) claude,codex]
   team delete <name>
+  team delete-all [--yes] [--dry-run] [(-t|--target) claude,codex]
   team list
+  team seed [(-t|--target) claude,codex]
   team setup-claude
   team setup-codex
   team uninstall [--yes] [--dry-run] [--keep-teams] [--purge-codex-config] [--purge-claude-env]

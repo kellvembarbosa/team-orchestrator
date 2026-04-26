@@ -103,8 +103,10 @@ multi-agent UI が有効な Codex CLI では、`/agent` でも利用可能な ag
 | `/team:setup-claude` | `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` を有効化 |
 | `/team:setup-codex` | Codex ミラーリングを有効化 |
 | `/team:new` | チーム作成 |
+| `/team:seed` | 24 個のデフォルトチーム（UX、プロダクト、エンジニアリング、グロース、ビジネス、リスク、セキュリティ）を一括作成。冪等 — 既存はスキップ。 |
 | `/team:delete <name>` | すべてのランタイムから削除 |
 | `/team:list` | チーム一覧 |
+| `/team:uninstall [--yes] [--dry-run] [--keep-teams] [--purge-codex-config] [--purge-claude-env]` | 生成済みチームとプラグインの状態を削除。`--dry-run` はプレビューのみ。`--keep-teams` でチームファイルを保持。`--purge-codex-config` で `~/.codex/config.toml` の `[agents]` ブロックを削除。`--purge-claude-env` で `~/.claude/settings.json` の実験フラグを削除。 |
 | `/team:<name>` | Claude Code でチームをスポーン |
 
 完全なドキュメント：[README.md](../README.md)。

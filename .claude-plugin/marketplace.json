@@ -10,7 +10,7 @@
         "source": "github",
         "repo": "kellvembarbosa/team-orchestrator"
       },
-      "version": "0.1.0",
+      "version": "0.1.2",
       "description": "Orchestrate agent teams across Claude Code (slash commands) and Codex (subagents). PRs welcome to add Gemini CLI, Qwen Code, opencode, and more."
     }
   ]

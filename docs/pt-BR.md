@@ -102,8 +102,10 @@ mostrar os agentes disponíveis. Os nomes devem bater com os blocos
 | `/team:setup-claude` | Ativa `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` |
 | `/team:setup-codex` | Habilita espelhamento para Codex |
 | `/team:new` | Cria um time |
+| `/team:seed` | Cria os 24 times padrão (UX, produto, eng, growth, negócios, risco, segurança). Idempotente — pula os que já existem. |
 | `/team:delete <nome>` | Remove de todas as runtimes |
 | `/team:list` | Lista times |
+| `/team:uninstall [--yes] [--dry-run] [--keep-teams] [--purge-codex-config] [--purge-claude-env]` | Remove times gerados e o estado do plugin. `--dry-run` simula; `--keep-teams` preserva os arquivos; `--purge-codex-config` limpa o bloco `[agents]` em `~/.codex/config.toml`; `--purge-claude-env` remove a flag experimental em `~/.claude/settings.json`. |
 | `/team:<nome>` | Spawna o time no Claude Code |
 
 Documentação completa: [README.md](../README.md).

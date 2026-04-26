@@ -104,8 +104,10 @@ listesini gösterebilir. İsimler `~/.codex/config.toml` içindeki
 | `/team:setup-claude` | `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` ayarlar |
 | `/team:setup-codex` | Codex aynalamasını etkinleştirir |
 | `/team:new` | Takım oluşturur |
+| `/team:seed` | 24 varsayılan takımı (UX, ürün, mühendislik, growth, iş, risk, güvenlik) tek seferde oluşturur. Idempotent — mevcut olanları atlar. |
 | `/team:delete <name>` | Tüm çalışma zamanlarından kaldırır |
 | `/team:list` | Takımları listeler |
+| `/team:uninstall [--yes] [--dry-run] [--keep-teams] [--purge-codex-config] [--purge-claude-env]` | Üretilen takımları ve eklenti durumunu kaldırır. `--dry-run` önizler; `--keep-teams` takım dosyalarını korur; `--purge-codex-config` `~/.codex/config.toml` içindeki `[agents]` bloğunu temizler; `--purge-claude-env` `~/.claude/settings.json` içindeki deneysel bayrağı kaldırır. |
 | `/team:<name>` | Claude Code'da takımı spawn eder |
 
 Tam dokümantasyon: [README.md](../README.md).

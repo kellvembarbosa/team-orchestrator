@@ -101,8 +101,10 @@ multi-agent UI가 활성화된 Codex CLI에서는 `/agent`로 사용 가능한 a
 | `/team:setup-claude` | `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` 활성화 |
 | `/team:setup-codex` | Codex 미러링 활성화 |
 | `/team:new` | 팀 생성 |
+| `/team:seed` | 24 개의 기본 팀(UX, 프로덕트, 엔지니어링, 그로스, 비즈니스, 리스크, 보안)을 일괄 생성. 멱등 — 이미 존재하면 건너뜁니다. |
 | `/team:delete <name>` | 모든 런타임에서 제거 |
 | `/team:list` | 팀 목록 |
+| `/team:uninstall [--yes] [--dry-run] [--keep-teams] [--purge-codex-config] [--purge-claude-env]` | 생성된 팀과 플러그인 상태 제거. `--dry-run` 미리보기. `--keep-teams` 팀 파일 유지. `--purge-codex-config` `~/.codex/config.toml` 의 `[agents]` 블록 제거. `--purge-claude-env` `~/.claude/settings.json` 의 실험 플래그 제거. |
 | `/team:<name>` | Claude Code에서 팀 스폰 |
 
 전체 문서: [README.md](../README.md).
