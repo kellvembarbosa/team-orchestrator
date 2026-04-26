@@ -1,0 +1,132 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="${CLAUDE_PLUGIN_ROOT:-}"
+if [ -z "$ROOT" ]; then
+  ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+fi
+export CLAUDE_PLUGIN_ROOT="$ROOT"
+
+LIB="$ROOT/lib"
+. "$LIB/targets.sh"
+. "$LIB/emit_claude.sh"
+. "$LIB/emit_codex.sh"
+
+RESERVED_RE='^(new|delete|list|setup-claude|setup-codex)$'
+SLUG_RE='^[a-z]([a-z0-9-]{0,38}[a-z0-9])?$'
+
+die() { echo "team: $*" >&2; exit 1; }
+
+cmd_new() {
+  local name="" instr="" model="" size="" target=""
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --name)         name="${2:-}";   shift 2 ;;
+      --instructions) instr="${2:-}";  shift 2 ;;
+      --model)        model="${2:-}";  shift 2 ;;
+      --size)         size="${2:-}";   shift 2 ;;
+      --target)       target="${2:-}"; shift 2 ;;
+      *) die "unknown flag: $1" ;;
+    esac
+  done
+  [ -n "$name" ]  || die "missing --name"
+  [ -n "$instr" ] || die "missing --instructions"
+  [[ "$name" =~ $RESERVED_RE ]] && die "'$name' is a reserved name"
+  [[ "$name" =~ $SLUG_RE ]]     || die "invalid slug: kebab-case (a-z, 0-9, -), start with letter"
+  [ -n "$size" ] && ! [[ "$size" =~ ^[0-9]+$ ]] && die "--size must be integer"
+
+  local resolved
+  resolved="$(targets_resolve "$target")" || exit 1
+
+  # collision check across all targets being written
+  for t in $resolved; do
+    case "$t" in
+      claude) claude_has "$name" && die "team '$name' already exists (claude)" ;;
+      codex)  codex_has  "$name" && die "team '$name' already exists (codex)"  ;;
+    esac
+  done
+
+  for t in $resolved; do
+    case "$t" in
+      claude) claude_emit "$name" "$instr" "$model" "$size" ;;
+      codex)  codex_emit  "$name" "$instr" "$model" "$size" || exit 1 ;;
+    esac
+  done
+
+  echo "Created team '$name' on:$resolved. Run /reload-plugins (claude) and re-scan agents (codex) as needed."
+}
+
+cmd_delete() {
+  local name="${1:-}"
+  [ -n "$name" ] || die "missing team name"
+  [[ "$name" =~ $RESERVED_RE ]] && die "'$name' is reserved"
+  local found=0
+  if claude_has "$name"; then claude_remove "$name"; found=1; fi
+  if codex_has  "$name"; then codex_remove  "$name"; found=1; fi
+  [ $found -eq 1 ] || die "no such team: $name"
+  echo "Deleted team '$name'."
+}
+
+cmd_list() {
+  shopt -s nullglob
+  local cfiles=("$CLAUDE_PLUGIN_ROOT/teams"/*.md)
+  local orphans
+  orphans="$(codex_list_orphans)"
+  if [ ${#cfiles[@]} -eq 0 ] && [ -z "$orphans" ]; then
+    echo "No teams defined. Create one with /team:new --name <slug> --instructions \"...\""
+    return
+  fi
+  printf '%-20s %-10s %-6s %-7s %-6s\n' "NAME" "MODEL" "SIZE" "CLAUDE" "CODEX"
+  for f in "${cfiles[@]}"; do
+    local n m s c x
+    n="$(basename "$f" .md)"
+    m="$(awk '/^model:/{print $2; exit}' "$f")"
+    s="$(awk '/^size:/{print $2; exit}'  "$f")"
+    c="yes"
+    if codex_has "$n"; then x="yes"; else x="-"; fi
+    printf '%-20s %-10s %-6s %-7s %-6s\n' "$n" "${m:--}" "${s:--}" "$c" "$x"
+  done
+  for n in $orphans; do
+    printf '%-20s %-10s %-6s %-7s %-6s\n' "$n" "-" "-" "-" "yes"
+  done
+}
+
+cmd_setup_claude() {
+  local settings="${HOME}/.claude/settings.json"
+  mkdir -p "$(dirname "$settings")"
+  [ -f "$settings" ] || echo '{}' > "$settings"
+  local tmp; tmp="$(mktemp)"
+  jq '.env.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS = "1"' "$settings" > "$tmp"
+  mv "$tmp" "$settings"
+  echo "Set CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1 in $settings"
+  echo "Restart Claude Code for the env change to take effect."
+}
+
+cmd_setup_codex() {
+  codex_setup
+  targets_persist_codex
+  echo "Codex target enabled. Subsequent /team:new will mirror to ~/.codex/agents/."
+}
+
+sub="${1:-}"
+shift || true
+case "$sub" in
+  new)          cmd_new "$@" ;;
+  delete)       cmd_delete "$@" ;;
+  list)         cmd_list "$@" ;;
+  setup-claude) cmd_setup_claude "$@" ;;
+  setup-codex)  cmd_setup_codex  "$@" ;;
+  ""|-h|--help|help)
+    cat <<EOF
+team — manage agent teams across Claude Code and Codex
+
+Usage:
+  team new --name <slug> --instructions "<text>" [--model <m>] [--size <n>] [--target claude,codex]
+  team delete <name>
+  team list
+  team setup-claude
+  team setup-codex
+EOF
+    ;;
+  *) die "unknown subcommand: $sub" ;;
+esac
