@@ -29,20 +29,55 @@ The definitions are conceptually similar — a name, a role/instructions, option
 
 A single command — `/team:new --name designers --instructions "..." --model sonnet --size 3` — writes to all enabled runtimes.
 
-## Install (development)
+## Quick Start
+
+Get up and running in under 2 minutes.
+
+### Step 1 — Install the plugin
+
+**Recommended: Claude Code plugin marketplace** (one-line install, auto-updates):
 
 ```bash
-git clone https://github.com/kellvembarbosa/team-orchestrator
+# Inside Claude Code:
+/plugin marketplace add https://github.com/kellvembarbosa/team-orchestrator
+/plugin install team@team-orchestrator
+```
+
+After install, the `/team:*` commands are available. If they don't appear, run `/reload-plugins`.
+
+**Alternative: local development (`--plugin-dir`)** — best for hacking on the plugin or running an unreleased branch:
+
+```bash
+git clone https://github.com/kellvembarbosa/team-orchestrator.git
 claude --plugin-dir ./team-orchestrator
 ```
 
-After `/team:new` or `/team:delete`, run `/reload-plugins` so the slash command appears/disappears.
+**Alternative: fully manual install** — clone into your user Claude config:
 
-## Quickstart
+```bash
+git clone https://github.com/kellvembarbosa/team-orchestrator.git ~/.claude/plugins/team-orchestrator
+# Restart Claude Code, then verify with /plugin list.
+```
+
+```powershell
+# Windows PowerShell — manual install
+New-Item -ItemType Directory -Force -Path "$HOME/.claude/plugins" | Out-Null
+git clone https://github.com/kellvembarbosa/team-orchestrator.git "$HOME/.claude/plugins/team-orchestrator"
+# Restart Claude Code, then verify with /plugin list.
+```
+
+### Step 2 — Enable runtimes
 
 ```text
-/team:setup-claude              # enable Claude's experimental agent-teams flag
-/team:setup-codex               # OPTIONAL: also mirror to ~/.codex/agents/
+/team:setup-claude              # required: sets CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1
+/team:setup-codex               # optional: also mirror to ~/.codex/agents/
+```
+
+Restart Claude Code after `setup-claude` so the env var takes effect.
+
+### Step 3 — Create your first team
+
+```text
 /team:new --name designers \
   --instructions "Frontend, UX, and visual design team. Coordinate on the component library." \
   --model sonnet --size 3
@@ -51,6 +86,21 @@ After `/team:new` or `/team:delete`, run `/reload-plugins` so the slash command 
 ```
 
 In Codex, prompt naturally: *"spawn the `designers` subagent"*.
+
+### Naming note
+
+Three identifiers, one project — they're related but **not interchangeable**:
+
+| Surface | Identifier |
+|---|---|
+| GitHub source repo | `kellvembarbosa/team-orchestrator` |
+| Claude Code marketplace | `team-orchestrator` |
+| `/plugin install` id | `team@team-orchestrator` |
+| Slash-command namespace | `/team:*` (singular — the plugin's `name` field) |
+
+`/plugin install` keys off the plugin id (`team@team-orchestrator`); the slash commands key off the plugin's `name` (`team`). So all of `/team:new`, `/team:delete`, `/team:list`, `/team:setup-codex`, and per-team `/team:<yourname>` stay singular regardless of the marketplace name.
+
+After `/team:new` or `/team:delete`, run `/reload-plugins` so the generated/removed slash command appears/disappears.
 
 ## Commands
 
