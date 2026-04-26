@@ -89,6 +89,73 @@ Restart Claude Code after `setup-claude` so the env var takes effect.
 
 In Codex, prompt naturally: *"spawn the `designers` subagent"*.
 
+## Using Teams In Codex
+
+Codex does not load Claude slash commands. The `/team:*` commands are only the
+management surface provided by the Claude Code plugin. For Codex, this plugin
+mirrors each team into Codex's native subagent configuration.
+
+### 1. Enable Codex mirroring
+
+Run this once from Claude Code:
+
+```text
+/team:setup-codex
+```
+
+This creates `~/.codex/agents/`, ensures `~/.codex/config.toml` has an
+`[agents]` block, and stores Codex as an enabled target in the plugin state.
+
+### 2. Create a team for Codex
+
+Create the team normally after mirroring is enabled:
+
+```text
+/team:new --name designers \
+  --instructions "Frontend, UX, and visual design team. Coordinate on the component library." \
+  --model gpt-5.4 --size 3
+```
+
+Or write only to Codex:
+
+```text
+/team:new --name reviewers \
+  --instructions "Review code for correctness, security, and missing tests." \
+  --model gpt-5.4 --target codex
+```
+
+The generated Codex files are:
+
+```text
+~/.codex/agents/designers.toml
+~/.codex/config.toml              # contains [agents.designers]
+```
+
+### 3. Restart Codex
+
+Codex reads agent definitions when a session starts. After creating or deleting
+a team, restart/reopen Codex so it reloads `~/.codex/config.toml`.
+
+### 4. Invoke the team in Codex
+
+Ask for the subagent by name in natural language:
+
+```text
+Use the designers subagent to review this dashboard implementation.
+```
+
+```text
+Spawn the reviewers agent and have it check the current diff.
+```
+
+```text
+Use codex-demo to confirm which agent handled this task.
+```
+
+In Codex CLI builds with the multi-agent UI enabled, `/agent` can also show the
+available agents. The names should match the `[agents.<name>]` entries in
+`~/.codex/config.toml`.
+
 ### Naming note
 
 Three identifiers, one project — they're related but **not interchangeable**:

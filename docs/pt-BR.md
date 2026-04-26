@@ -28,6 +28,73 @@ claude --plugin-dir /caminho/para/team-orchestrator
 /team:designers foco no redesign do dashboard
 ```
 
+## Como usar no Codex
+
+O Codex não carrega os slash commands do Claude. Os comandos `/team:*` servem
+para gerenciar os times pelo plugin no Claude Code. Para o Codex, o plugin
+espelha cada time para a configuração nativa de subagents.
+
+### 1. Ative o espelhamento
+
+Rode uma vez no Claude Code:
+
+```text
+/team:setup-codex
+```
+
+Isso cria `~/.codex/agents/`, prepara o bloco `[agents]` em
+`~/.codex/config.toml` e marca o Codex como alvo habilitado.
+
+### 2. Crie um time
+
+Depois do setup, crie normalmente:
+
+```text
+/team:new --name designers \
+  --instructions "Time de frontend, UX e design system" \
+  --model gpt-5.4 --size 3
+```
+
+Ou crie somente no Codex:
+
+```text
+/team:new --name reviewers \
+  --instructions "Revise código procurando bugs, riscos de segurança e testes faltando" \
+  --model gpt-5.4 --target codex
+```
+
+O plugin gera:
+
+```text
+~/.codex/agents/designers.toml
+~/.codex/config.toml              # com [agents.designers]
+```
+
+### 3. Reinicie o Codex
+
+O Codex lê os agentes no início da sessão. Depois de criar ou remover um time,
+reinicie/reabra o Codex para recarregar `~/.codex/config.toml`.
+
+### 4. Invoque por linguagem natural
+
+No Codex, chame o subagente pelo nome:
+
+```text
+Use o subagente designers para revisar esta implementação do dashboard.
+```
+
+```text
+Spawn the reviewers agent and have it check the current diff.
+```
+
+```text
+Use codex-demo para confirmar qual agente executou esta tarefa.
+```
+
+Em versões do Codex CLI com UI multi-agent habilitada, `/agent` também pode
+mostrar os agentes disponíveis. Os nomes devem bater com os blocos
+`[agents.<nome>]` em `~/.codex/config.toml`.
+
 ## Comandos
 
 | Comando | Função |

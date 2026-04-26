@@ -28,6 +28,72 @@ claude --plugin-dir /path/to/team-orchestrator
 /team:designers 專注於儀表板重新設計
 ```
 
+## 在 Codex 中使用
+
+Codex 不會載入 Claude 的斜線命令。`/team:*` 命令只是 Claude Code
+外掛中的管理介面。對於 Codex，本外掛會把每個團隊鏡像為 Codex 原生的
+subagent 設定。
+
+### 1. 啟用 Codex 鏡像
+
+在 Claude Code 中執行一次：
+
+```text
+/team:setup-codex
+```
+
+這會建立 `~/.codex/agents/`，確認 `~/.codex/config.toml` 中有
+`[agents]` 區塊，並在外掛狀態中把 Codex 標記為啟用目標。
+
+### 2. 建立團隊
+
+啟用鏡像後正常建立：
+
+```text
+/team:new --name designers \
+  --instructions "Frontend, UX, and visual design team" \
+  --model gpt-5.4 --size 3
+```
+
+或只寫入 Codex：
+
+```text
+/team:new --name reviewers \
+  --instructions "Review code for correctness, security, and missing tests." \
+  --model gpt-5.4 --target codex
+```
+
+外掛會產生：
+
+```text
+~/.codex/agents/designers.toml
+~/.codex/config.toml              # contains [agents.designers]
+```
+
+### 3. 重新啟動 Codex
+
+Codex 會在工作階段啟動時讀取智能體定義。建立或刪除團隊後，請重新啟動/
+重新開啟 Codex，以重新載入 `~/.codex/config.toml`。
+
+### 4. 用自然語言呼叫
+
+在 Codex 中用名稱請求 subagent：
+
+```text
+Use the designers subagent to review this dashboard implementation.
+```
+
+```text
+Spawn the reviewers agent and have it check the current diff.
+```
+
+```text
+Use codex-demo to confirm which agent handled this task.
+```
+
+在啟用了 multi-agent UI 的 Codex CLI 版本中，`/agent` 也可以顯示可用
+agents。名稱應與 `~/.codex/config.toml` 中的 `[agents.<name>]` 一致。
+
 ## 命令
 
 | 命令 | 用途 |
