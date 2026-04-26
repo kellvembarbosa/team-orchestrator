@@ -12,12 +12,16 @@ assert_contains "$CODEX_FILE" 'model = "sonnet"'
 assert_contains "$CODEX_FILE" "developer_instructions"
 assert_contains "$CODEX_FILE" "Design system focus"
 assert_contains "$CODEX_FILE" "size: 3"
+assert_contains "$FAKE_HOME/.codex/config.toml" "[agents.designers]"
+assert_contains "$FAKE_HOME/.codex/config.toml" 'config_file = "agents/designers.toml"'
 
 assert_file "$CLAUDE_PLUGIN_ROOT/teams/designers.md"     "claude team file"
 assert_file "$CLAUDE_PLUGIN_ROOT/commands/designers.md"  "claude spawn cmd"
 
 "$TEAM" new --name api-only --instructions "Backend" --target codex
 assert_file    "$FAKE_HOME/.codex/agents/api-only.toml"   "codex-only emitted"
+assert_contains "$FAKE_HOME/.codex/config.toml" "[agents.api-only]"
+assert_contains "$FAKE_HOME/.codex/config.toml" 'config_file = "agents/api-only.toml"'
 assert_no_file "$CLAUDE_PLUGIN_ROOT/teams/api-only.md"    "claude not written"
 assert_no_file "$CLAUDE_PLUGIN_ROOT/commands/api-only.md" "claude cmd not written"
 

@@ -4,6 +4,10 @@ codex_dir()        { echo "${HOME}/.codex"; }
 codex_agents_dir() { echo "$(codex_dir)/agents"; }
 codex_config()     { echo "$(codex_dir)/config.toml"; }
 
+codex_escape_toml_string() {
+  printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'
+}
+
 codex_setup() {
   local d cfg
   d="$(codex_agents_dir)"
@@ -45,18 +49,56 @@ codex_emit() {
 
   {
     echo "name = \"$name\""
-    echo "description = \"$(printf '%s' "$desc" | sed 's/"/\\"/g')\""
+    echo "description = \"$(codex_escape_toml_string "$desc")\""
     [ -n "$model" ] && echo "model = \"$model\""
     echo "developer_instructions = '''"
     echo "$instr"
     [ -n "$size" ] && { echo ""; echo "(size hint: $size — spawn this many in parallel when invoked)"; }
     echo "'''"
   } > "$d/$name.toml"
+
+  codex_register_agent "$name" "$desc"
+}
+
+codex_register_agent() {
+  local name="$1" desc="$2" cfg tmp
+  cfg="$(codex_config)"
+  codex_setup >/dev/null
+  tmp="$(mktemp)"
+  awk -v section="[agents.$name]" '
+    BEGIN { skip = 0 }
+    $0 == section { skip = 1; next }
+    /^\[/ { skip = 0 }
+    { if (!skip) print }
+  ' "$cfg" > "$tmp"
+  {
+    cat "$tmp"
+    echo
+    echo "[agents.$name]"
+    echo "description = \"$(codex_escape_toml_string "$desc")\""
+    echo "config_file = \"agents/$name.toml\""
+  } > "$cfg"
+  rm -f "$tmp"
 }
 
 codex_remove() {
   local name="$1"
   rm -f "$(codex_agents_dir)/$name.toml"
+  codex_unregister_agent "$name"
+}
+
+codex_unregister_agent() {
+  local name="$1" cfg tmp
+  cfg="$(codex_config)"
+  [ -f "$cfg" ] || return 0
+  tmp="$(mktemp)"
+  awk -v section="[agents.$name]" '
+    BEGIN { skip = 0 }
+    $0 == section { skip = 1; next }
+    /^\[/ { skip = 0 }
+    { if (!skip) print }
+  ' "$cfg" > "$tmp"
+  mv "$tmp" "$cfg"
 }
 
 codex_has() {

@@ -69,15 +69,19 @@ cmd_delete() {
 
 cmd_list() {
   shopt -s nullglob
-  local cfiles=("$CLAUDE_PLUGIN_ROOT/teams"/*.md)
-  local orphans
+  local orphans has_claude=0
   orphans="$(codex_list_orphans)"
-  if [ ${#cfiles[@]} -eq 0 ] && [ -z "$orphans" ]; then
+  local f
+  for f in "$CLAUDE_PLUGIN_ROOT/teams"/*.md; do
+    has_claude=1
+    break
+  done
+  if [ $has_claude -eq 0 ] && [ -z "$orphans" ]; then
     echo "No teams defined. Create one with /team:new --name <slug> --instructions \"...\""
     return
   fi
   printf '%-20s %-10s %-6s %-7s %-6s\n' "NAME" "MODEL" "SIZE" "CLAUDE" "CODEX"
-  for f in "${cfiles[@]}"; do
+  for f in "$CLAUDE_PLUGIN_ROOT/teams"/*.md; do
     local n m s c x
     n="$(basename "$f" .md)"
     m="$(awk '/^model:/{print $2; exit}' "$f")"
