@@ -13,6 +13,53 @@
 
 ---
 
+## The pain
+
+[Claude Code agent teams](https://code.claude.com/docs/en/agent-teams) are powerful — but every team means writing YAML by hand, dropping it in the right folder, reloading plugins. Get a team that *works*? It's stuck in that one repo. Next project: blank page. Want the same team on Codex? Different format, different folder, do it all again.
+
+## The fix
+
+Write the team once. Use it anywhere.
+
+**Create** — start the instruction with `One teammate on` (Claude) or `Use agents on` (Codex). The prefix tells the runtime how to spawn the team:
+
+```text
+# Claude Code team
+/team:new --name reviewers \
+  --instructions "One teammate on code review with agents focused on correctness, security, and missing tests." \
+  --model sonnet --size 3
+
+# Claude Code team
+/team:new --name designers \
+  --instructions "One teammate on product design with agents focused on UX, visual hierarchy, and component reuse." \
+  --model sonnet --size 3
+
+# Codex team (mirrored)
+/team:new --name auditors \
+  --instructions "Use agents on security auditing focused on auth flows, input validation, and dependency risk." \
+  --model gpt-5.4 --size 3 --target codex
+```
+
+**Use in Claude Code** — slash or natural language:
+
+```text
+/team:reviewers check the auth refactor in PR #42
+/team:designers redesign the dashboard empty state
+
+# or just:
+spawn the reviewers team on the current diff
+have designers propose 3 variants for the pricing page
+```
+
+**Use in Codex** — same teams, mirrored automatically:
+
+```text
+Use the reviewers subagent on this branch.
+Spawn designers and have them critique the new onboarding screens.
+```
+
+One definition. Both runtimes. Saved forever.
+
 ## Why
 
 Every modern AI coding CLI is shipping its own multi-agent / sub-agent system: Claude Code has [agent teams](https://code.claude.com/docs/en/agent-teams), Codex has [subagents](https://developers.openai.com/codex/subagents), and more are coming (Gemini CLI, Qwen Code, opencode, etc).
