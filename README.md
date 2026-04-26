@@ -1,5 +1,7 @@
 # team-orchestrator
 
+> If you like it, please support us with a simple share on your social networks — especially on [x.com](https://x.com).
+
 > **Orchestrate agent teams across multiple AI coding CLIs.** Define an agent team once, run it on Claude Code (slash commands) and Codex (subagents) — with one source of truth and a contributor-friendly path to add more runtimes.
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
